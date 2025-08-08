@@ -5,21 +5,24 @@ A CLI tool for common Algolia operations built with Node.js and TypeScript.
 ## Setup
 
 1. Copy `.env.example` to `.env` and fill in your Algolia credentials:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Edit `.env` with your values:
+
    ```
    ALGOLIA_APP_ID=your_app_id_here
    ALGOLIA_API_KEY=your_admin_api_key_here
    ALGOLIA_INDEX_NAME=your_index_name_here
-   
-   # Optional: For resource-specific operations (comma-separated resourceType:path pairs)
-   RESOURCE_TYPE_SCHEMA_PATH_MAPPING=webinarDemand:/drafts/cole/webinars/webinar-schema.json,event:/drafts/events/events-schema.json,report:/drafts/reports/reports-schema.json,pressMention:/drafts/cole/press/press-mention-schema.json
+
+   # Required: For resource-specific operations (JSON format)
+   RESOURCE_TYPE_SCHEMA_PATH_MAPPING={"webinarDemand":{"schemaPath":"/path/to/webinars/webinar-schema.json"},"event":{"schemaPath":"/path/to/events-schema.json"}}
    ```
 
 3. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -33,20 +36,6 @@ A CLI tool for common Algolia operations built with Node.js and TypeScript.
 
 All commands support `--index <name>` to override the default index from `.env`. Destructive operations require the `--execute` flag.
 
-### replace-objectid
-
-Replace all record objectIDs with `title.toLowerCase()`:
-
-```bash
-# Dry run (default) - shows what would change without making changes
-npm run dev replace-objectid
-
-# Execute the changes
-npm run dev replace-objectid --execute
-
-# Use a different index
-npm run dev replace-objectid --index my-other-index --execute
-```
 
 ### replace-resource-objectid
 
@@ -82,15 +71,23 @@ npm run dev generate-uuid
 
 ### fix-published-date
 
-Convert string dates to timestamps for a specific resourceType:
+Convert string dates to timestamps for a specific resourceType (requires `--resource-type` parameter):
 
 ```bash
+# Analyze publishedDate fields for webinarDemand records
+npm run dev fix-published-date --resource-type webinarDemand
+
+# Execute the fixes
 npm run dev fix-published-date --resource-type webinarDemand --execute
+
+# Use a different index
+npm run dev fix-published-date --resource-type event --index my-other-index --execute
 ```
 
 ## Processing Features
 
 All batch operations include:
+
 - Process records in batches of 1000
 - Progress indicators and metrics
 - Graceful error handling
