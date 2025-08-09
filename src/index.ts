@@ -8,6 +8,7 @@ import { findMatchingObjectId } from "./actions/find-matching-objectid";
 import { replaceObjectIdWithSlug } from "./actions/replace-objectid-with-slug";
 import { generateUuid } from "./actions/generate-uuid";
 import { fixPublishedDate } from "./actions/fix-published-date";
+import { normalizeDateField } from "./actions/normalize-date-field";
 
 dotenv.config();
 
@@ -139,6 +140,33 @@ program
       await fixPublishedDate({
         indexName: options.index,
         resourceType: options.resourceType,
+        dryRun,
+      });
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("normalize-date-field")
+  .description(
+    "Browse all records and normalize a specific date field to Unix timestamps in seconds (DESTRUCTIVE)"
+  )
+  .requiredOption("--field <name>", "Field name to normalize (e.g., publishedDate, createdAt)")
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the changes")
+  .option("--index <name>", "Index name (overrides .env)")
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+
+      await normalizeDateField({
+        indexName: options.index,
+        fieldName: options.field,
         dryRun,
       });
     } catch (error) {

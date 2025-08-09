@@ -84,6 +84,28 @@ npm run dev fix-published-date --resource-type webinarDemand --execute
 npm run dev fix-published-date --resource-type event --index my-other-index --execute
 ```
 
+### normalize-date-field
+
+Browse all records and normalize a specific date field to Unix timestamps in seconds (requires `--field` parameter):
+
+```bash
+# Analyze a date field across all records
+npm run dev normalize-date-field --field publishedDate
+
+# Execute normalization for createdAt field
+npm run dev normalize-date-field --field createdAt --execute
+
+# Use a different index
+npm run dev normalize-date-field --field eventDate --index my-other-index --execute
+```
+
+**Supported input formats:**
+- Date strings: `"2024-01-15"`, `"2024-12-25 14:30:00"`, `"12/25/2024"`
+- String timestamps: `"1705334400"` (seconds), `"1705334400000"` (milliseconds) 
+- Numeric timestamps: `1705334400` (seconds), `1705334400000` (milliseconds)
+- All variations are normalized to Unix timestamps in seconds
+- Skips null, undefined, or empty field values
+
 ## Processing Features
 
 All batch operations include:
