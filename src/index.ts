@@ -29,6 +29,7 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--log-file", "Save results to log file in logs folder (automatically named)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -36,6 +37,7 @@ program
         indexName: options.index || undefined,
         dryRun,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
       };
       await replaceResourceObjectIds(actionOptions);
     } catch (error) {
@@ -52,11 +54,13 @@ program
   .description("Find records where objectID equals generateUid(title)")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--log-file", "Save results to log file in logs folder (automatically named)")
   .action(async (options) => {
     try {
       const actionOptions = {
         indexName: options.index || undefined,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
       };
       await findMatchingObjectId(actionOptions);
     } catch (error) {
@@ -77,6 +81,7 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--log-file", "Save results to log file in logs folder (automatically named)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -84,6 +89,7 @@ program
         indexName: options.index || undefined,
         dryRun,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
       };
       await replaceObjectIdWithSlug(actionOptions);
     } catch (error) {
@@ -133,6 +139,7 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--log-file", "Save results to log file in logs folder (automatically named)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -141,6 +148,7 @@ program
         resourceType: options.resourceType,
         dryRun,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
       };
       await fixPublishedDate(actionOptions);
     } catch (error) {
@@ -162,6 +170,7 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--log-file", "Save results to log file in logs folder (automatically named)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -170,6 +179,7 @@ program
         fieldName: options.field,
         dryRun,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
       };
       await normalizeDateField(actionOptions);
     } catch (error) {

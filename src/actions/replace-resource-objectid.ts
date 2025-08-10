@@ -23,7 +23,7 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
   ReplaceResourceObjectIdOptions,
   ReplaceResourceObjectIdResult
 > {
-  private logger: Logger;
+  protected override logger: Logger;
   private resourceConfigs: ResourceConfig[] = [];
 
   constructor(options: ReplaceResourceObjectIdOptions) {
@@ -72,7 +72,6 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
       }
     }
 
-    this.logResults();
     return result;
   }
 
@@ -108,7 +107,7 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
 
     this.logger.info("Target resource configurations:");
     this.resourceConfigs.forEach((config, index) => {
-      console.log(`   ${index + 1}. resourceType: ${config.resourceType} → schemaPath: ${config.schemaPath}`);
+      this.logger.logRaw(`   ${index + 1}. resourceType: ${config.resourceType} → schemaPath: ${config.schemaPath}`);
     });
   }
 

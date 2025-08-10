@@ -30,7 +30,7 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
   NormalizeDateFieldOptions,
   NormalizeDateFieldResult
 > {
-  private logger: Logger;
+  protected override logger: Logger;
   private batchProcessor: BatchProcessor<RecordToFix, void>;
   private analysis: DateProcessingMetrics;
   private recordsToFix: RecordToFix[] = [];
@@ -79,7 +79,7 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
   }
 
   private validateFieldName(): void {
-    if (!this.options.fieldName || this.options.fieldName.trim() === '') {
+    if (!this.options.fieldName || this.options.fieldName.trim() === "") {
       this.logger.error("Field name is required");
       process.exit(1);
     }
@@ -98,7 +98,7 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
 
   private async analyzeDateField(): Promise<void> {
     this.logger.section(`Phase 1: Analyzing ${this.options.fieldName} fields`);
-    
+
     for await (const records of this.browseRecords()) {
       for (const record of records) {
         this.analysis.processedRecords++;
@@ -149,7 +149,10 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     return value === null || value === undefined || value === "";
   }
 
-  private isAlreadyNormalizedTimestamp(originalValue: any, convertedValue: number): boolean {
+  private isAlreadyNormalizedTimestamp(
+    originalValue: any,
+    convertedValue: number
+  ): boolean {
     return (
       typeof originalValue === "number" &&
       originalValue > 0 &&
@@ -190,7 +193,10 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     if (!isNaN(numericValue) && isFinite(numericValue) && numericValue > 0) {
       if (numericValue >= 946684800 && numericValue <= 2147483647) {
         return Math.floor(numericValue); // Timestamp in seconds
-      } else if (numericValue >= 946684800000 && numericValue <= 2147483647000) {
+      } else if (
+        numericValue >= 946684800000 &&
+        numericValue <= 2147483647000
+      ) {
         return Math.floor(numericValue / 1000); // Timestamp in milliseconds
       }
     }
@@ -230,14 +236,22 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
 
   private logAnalysisResults(): void {
     this.logger.section("Analysis Complete");
-    console.log(`📊 Total records analyzed: ${this.analysis.processedRecords}`);
-    console.log(`📝 Field "${this.options.fieldName}" found: ${this.analysis.fieldFound}`);
-    console.log(`❌ Field empty/null/undefined: ${this.analysis.fieldEmpty}`);
-    console.log(`✅ Already valid timestamps: ${this.analysis.fieldValidTimestamps}`);
-    console.log(`🔄 Convertible dates found: ${this.analysis.fieldConvertibleDates}`);
-    console.log(`⚠️  Invalid/unconvertible values: ${this.analysis.fieldInvalidDates}`);
-    console.log(`📦 Batches processed: ${this.analysis.batchesProcessed}`);
-    console.log("");
+    this.logger.logRaw(`📊 Total records analyzed: ${this.analysis.processedRecords}`);
+    this.logger.logRaw(
+      `📝 Field "${this.options.fieldName}" found: ${this.analysis.fieldFound}`
+    );
+    this.logger.logRaw(`❌ Field empty/null/undefined: ${this.analysis.fieldEmpty}`);
+    this.logger.logRaw(
+      `✅ Already valid timestamps: ${this.analysis.fieldValidTimestamps}`
+    );
+    this.logger.logRaw(
+      `🔄 Convertible dates found: ${this.analysis.fieldConvertibleDates}`
+    );
+    this.logger.logRaw(
+      `⚠️  Invalid/unconvertible values: ${this.analysis.fieldInvalidDates}`
+    );
+    this.logger.logRaw(`📦 Batches processed: ${this.analysis.batchesProcessed}`);
+    this.logger.logRaw("");
   }
 
   private async applyFixes(): Promise<number> {
@@ -257,31 +271,35 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
         }));
 
         await this.saveRecords(batchRecords);
-        this.logger.info(`📤 Updated batch ${batchNumber} (${batch.length} records)`);
+        this.logger.info(
+          `📤 Updated batch ${batchNumber} (${batch.length} records)`
+        );
       }
     );
 
     const totalFixed = this.recordsToFix.length;
-    this.logger.success(`Updated ${totalFixed} records with normalized timestamps`);
+    this.logger.success(
+      `Updated ${totalFixed} records with normalized timestamps`
+    );
     return totalFixed;
   }
 
   private logDryRunResults(): void {
     this.logger.info("🔄 Records that would be updated:");
-    
+
     const samplesToShow = Math.min(10, this.recordsToFix.length);
-    
+
     for (let i = 0; i < samplesToShow; i++) {
       const item = this.recordsToFix[i];
       if (item) {
-        console.log(
+        this.logger.logRaw(
           `   ${item.record.objectID}: "${item.originalValue}" → ${item.convertedValue}`
         );
       }
     }
 
     if (this.recordsToFix.length > samplesToShow) {
-      console.log(
+      this.logger.logRaw(
         `   ... and ${this.recordsToFix.length - samplesToShow} more records`
       );
     }
@@ -294,20 +312,20 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
   protected override logResults(): void {
     const duration = (Date.now() - this.startTime) / 1000;
 
-    console.log("");
-    console.log(`⏱️  Processing time: ${duration.toFixed(2)}s`);
+    this.logger.logRaw("");
+    this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.options.dryRun && this.recordsToFix.length > 0) {
-      console.log("");
-      console.log("💡 This was a dry run. Use --execute to apply changes.");
+      this.logger.logRaw("");
+      this.logger.logRaw("💡 This was a dry run. Use --execute to apply changes.");
     }
 
     if (this.analysis.errors.length > 0) {
-      console.log("");
-      console.log("❌ Errors encountered:");
-      console.log(`   ${this.analysis.errors.length} issues found`);
+      this.logger.logRaw("");
+      this.logger.logRaw("❌ Errors encountered:");
+      this.logger.logRaw(`   ${this.analysis.errors.length} issues found`);
       if (this.analysis.errors.length <= 5) {
-        this.analysis.errors.forEach((error) => console.log(`   ${error}`));
+        this.analysis.errors.forEach((error) => this.logger.logRaw(`   ${error}`));
       }
     }
   }
@@ -318,7 +336,7 @@ export async function normalizeDateField(
 ): Promise<void> {
   const action = new NormalizeDateFieldAction(options);
   const result = await action.execute();
-  
+
   if (!result.success) {
     process.exit(1);
   }

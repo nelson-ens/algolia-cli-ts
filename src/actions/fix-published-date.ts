@@ -25,7 +25,7 @@ export class FixPublishedDateAction extends BaseAlgoliaAction<
   FixPublishedDateOptions,
   FixPublishedDateResult
 > {
-  private logger: Logger;
+  protected override logger: Logger;
   private batchProcessor: BatchProcessor<RecordToFix, void>;
   private analysis: DateProcessingMetrics;
   private recordsToFix: RecordToFix[] = [];
@@ -159,13 +159,13 @@ export class FixPublishedDateAction extends BaseAlgoliaAction<
 
   private logAnalysisResults(): void {
     this.logger.section("Analysis Complete");
-    console.log(`📊 Total records analyzed: ${this.analysis.processedRecords}`);
-    console.log(`📝 String dates found: ${this.analysis.fieldConvertibleDates}`);
-    console.log(`🔢 Numeric dates found: ${this.analysis.fieldValidTimestamps}`);
-    console.log(`❌ Null/undefined/empty: ${this.analysis.fieldEmpty}`);
-    console.log(`⚠️  Invalid date strings: ${this.analysis.fieldInvalidDates}`);
-    console.log(`📦 Batches processed: ${this.analysis.batchesProcessed}`);
-    console.log("");
+    this.logger.logRaw(`📊 Total records analyzed: ${this.analysis.processedRecords}`);
+    this.logger.logRaw(`📝 String dates found: ${this.analysis.fieldConvertibleDates}`);
+    this.logger.logRaw(`🔢 Numeric dates found: ${this.analysis.fieldValidTimestamps}`);
+    this.logger.logRaw(`❌ Null/undefined/empty: ${this.analysis.fieldEmpty}`);
+    this.logger.logRaw(`⚠️  Invalid date strings: ${this.analysis.fieldInvalidDates}`);
+    this.logger.logRaw(`📦 Batches processed: ${this.analysis.batchesProcessed}`);
+    this.logger.logRaw("");
   }
 
   private async applyFixes(): Promise<number> {
@@ -202,14 +202,14 @@ export class FixPublishedDateAction extends BaseAlgoliaAction<
     for (let i = 0; i < samplesToShow; i++) {
       const item = this.recordsToFix[i];
       if (item) {
-        console.log(
+        this.logger.logRaw(
           `   ${item.record.objectID}: "${item.originalDate}" → ${item.convertedTimestamp}`
         );
       }
     }
 
     if (this.recordsToFix.length > samplesToShow) {
-      console.log(
+      this.logger.logRaw(
         `   ... and ${this.recordsToFix.length - samplesToShow} more records`
       );
     }
@@ -222,20 +222,20 @@ export class FixPublishedDateAction extends BaseAlgoliaAction<
   protected override logResults(): void {
     const duration = (Date.now() - this.startTime) / 1000;
 
-    console.log("");
-    console.log(`⏱️  Processing time: ${duration.toFixed(2)}s`);
+    this.logger.logRaw("");
+    this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.options.dryRun && this.recordsToFix.length > 0) {
-      console.log("");
-      console.log("💡 This was a dry run. Use --execute to apply changes.");
+      this.logger.logRaw("");
+      this.logger.logRaw("💡 This was a dry run. Use --execute to apply changes.");
     }
 
     if (this.analysis.errors.length > 0) {
-      console.log("");
-      console.log("❌ Errors encountered:");
-      console.log(`   ${this.analysis.errors.length} issues found`);
+      this.logger.logRaw("");
+      this.logger.logRaw("❌ Errors encountered:");
+      this.logger.logRaw(`   ${this.analysis.errors.length} issues found`);
       if (this.analysis.errors.length <= 5) {
-        this.analysis.errors.forEach((error) => console.log(`   ${error}`));
+        this.analysis.errors.forEach((error) => this.logger.logRaw(`   ${error}`));
       }
     }
   }

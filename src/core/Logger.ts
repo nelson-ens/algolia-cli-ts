@@ -82,10 +82,30 @@ export class Logger {
   progress(message: string, current: number, total: number): void {
     const percentage = Math.round((current / total) * 100);
     const progressBar = '█'.repeat(Math.floor(percentage / 5)) + '░'.repeat(20 - Math.floor(percentage / 5));
-    console.log(`📦 ${message} [${progressBar}] ${percentage}% (${current}/${total})`);
+    const fullMessage = `${message} [${progressBar}] ${percentage}% (${current}/${total})`;
+    
+    // Add to log entries
+    const entry: LogEntry = {
+      level: LogLevel.INFO,
+      message: fullMessage,
+      timestamp: new Date(),
+    };
+    this.entries.push(entry);
+    
+    console.log(`📦 ${fullMessage}`);
   }
 
   section(title: string): void {
+    const sectionMessage = `${title}\n${'━'.repeat(50)}`;
+    
+    // Add to log entries
+    const entry: LogEntry = {
+      level: LogLevel.INFO,
+      message: sectionMessage,
+      timestamp: new Date(),
+    };
+    this.entries.push(entry);
+    
     console.log("");
     console.log(`🔍 ${title}`);
     console.log("━".repeat(50));
@@ -93,6 +113,17 @@ export class Logger {
 
   getEntries(): LogEntry[] {
     return [...this.entries];
+  }
+
+  logRaw(message: string): void {
+    // For logging detailed output that should be captured in log file
+    const entry: LogEntry = {
+      level: LogLevel.INFO,
+      message: message,
+      timestamp: new Date(),
+    };
+    this.entries.push(entry);
+    console.log(message);
   }
 
   getErrors(): LogEntry[] {

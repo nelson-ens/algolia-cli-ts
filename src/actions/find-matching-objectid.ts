@@ -17,7 +17,7 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
   FindMatchingObjectIdOptions,
   FindMatchingObjectIdResult
 > {
-  private logger: Logger;
+  protected override logger: Logger;
   private matchingRecords: AlgoliaRecord[] = [];
 
   constructor(options: FindMatchingObjectIdOptions) {
@@ -40,7 +40,6 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
       }
     }
 
-    this.logResults();
     this.logMatchingRecordsSummary();
 
     return {
@@ -74,14 +73,14 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
 
   private logMatchingRecordsSummary(): void {
     this.logger.section("Search Results");
-    console.log(`✅ Matching records found: ${this.matchingRecords.length}`);
+    this.logger.logRaw(`✅ Matching records found: ${this.matchingRecords.length}`);
 
     if (this.matchingRecords.length > 0) {
-      console.log("");
-      console.log("🎯 Matching Records:");
+      this.logger.logRaw("");
+      this.logger.logRaw("🎯 Matching Records:");
       this.matchingRecords.forEach((record, index) => {
         const title = (record as any).title || 'N/A';
-        console.log(`   ${index + 1}. ${record.objectID} - "${title}"`);
+        this.logger.logRaw(`   ${index + 1}. ${record.objectID} - "${title}"`);
       });
     }
   }
@@ -94,19 +93,19 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
   protected override logResults(): void {
     const duration = (Date.now() - this.startTime) / 1000;
 
-    console.log("");
-    console.log("📈 Search Complete!");
-    console.log("━".repeat(50));
-    console.log(`📊 Total records processed: ${this.metrics.processedRecords}`);
-    console.log(`✅ Matching records found: ${this.matchingRecords.length}`);
-    console.log(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
-    console.log(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
-    console.log(`⏱️  Processing time: ${duration.toFixed(2)}s`);
+    this.logger.logRaw("");
+    this.logger.logRaw("📈 Search Complete!");
+    this.logger.logRaw("━".repeat(50));
+    this.logger.logRaw(`📊 Total records processed: ${this.metrics.processedRecords}`);
+    this.logger.logRaw(`✅ Matching records found: ${this.matchingRecords.length}`);
+    this.logger.logRaw(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
+    this.logger.logRaw(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
+    this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.metrics.errors.length > 0) {
-      console.log("");
-      console.log("❌ Errors encountered:");
-      console.log(`   ${this.metrics.errors.length} issues found`);
+      this.logger.logRaw("");
+      this.logger.logRaw("❌ Errors encountered:");
+      this.logger.logRaw(`   ${this.metrics.errors.length} issues found`);
     }
   }
 }

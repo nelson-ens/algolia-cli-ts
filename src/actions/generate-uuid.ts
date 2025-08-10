@@ -108,18 +108,18 @@ export class GenerateUuidAction {
   }
 
   private logResult(input: string, uuid: string): void {
-    console.log("");
-    console.log("📈 Result:");
-    console.log("━".repeat(50));
-    console.log(`📝 Input: ${input}`);
-    console.log(`🔑 Generated UUID: ${uuid}`);
+    this.logger.logRaw("");
+    this.logger.logRaw("📈 Result:");
+    this.logger.logRaw("━".repeat(50));
+    this.logger.logRaw(`📝 Input: ${input}`);
+    this.logger.logRaw(`🔑 Generated UUID: ${uuid}`);
     
     // Additional helpful information
-    console.log("");
-    console.log("💡 Additional Info:");
-    console.log(`   - Input length: ${input.length} characters`);
-    console.log(`   - UUID version: v5 (namespace-based)`);
-    console.log(`   - Reproducible: Same input always generates same UUID`);
+    this.logger.logRaw("");
+    this.logger.logRaw("💡 Additional Info:");
+    this.logger.logRaw(`   - Input length: ${input.length} characters`);
+    this.logger.logRaw(`   - UUID version: v5 (namespace-based)`);
+    this.logger.logRaw(`   - Reproducible: Same input always generates same UUID`);
     
     if (this.logger.getErrors().length === 0) {
       this.logger.success("UUID generated successfully");

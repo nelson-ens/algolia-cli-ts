@@ -19,7 +19,7 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
   ReplaceObjectIdWithSlugOptions,
   ReplaceObjectIdWithSlugResult
 > {
-  private logger: Logger;
+  protected override logger: Logger;
 
   constructor(options: ReplaceObjectIdWithSlugOptions) {
     super(options);
@@ -65,7 +65,6 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
       }
     }
 
-    this.logResults();
     this.logDetailedResults(result);
     return result;
   }
@@ -119,33 +118,33 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
   protected override logResults(): void {
     const duration = (Date.now() - this.startTime) / 1000;
 
-    console.log("");
-    console.log("📈 Processing Complete!");
-    console.log("━".repeat(50));
-    console.log(`📊 Total records processed: ${this.metrics.processedRecords}`);
-    console.log(`🔄 Records that would change: ${this.metrics.recordsWithChanges}`);
-    console.log(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
-    console.log(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
-    console.log(`⏱️  Processing time: ${duration.toFixed(2)}s`);
+    this.logger.logRaw("");
+    this.logger.logRaw("📈 Processing Complete!");
+    this.logger.logRaw("━".repeat(50));
+    this.logger.logRaw(`📊 Total records processed: ${this.metrics.processedRecords}`);
+    this.logger.logRaw(`🔄 Records that would change: ${this.metrics.recordsWithChanges}`);
+    this.logger.logRaw(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
+    this.logger.logRaw(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
+    this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.options.dryRun && this.metrics.recordsWithChanges > 0) {
-      console.log("");
-      console.log("💡 This was a dry run. Use --execute to apply changes.");
+      this.logger.logRaw("");
+      this.logger.logRaw("💡 This was a dry run. Use --execute to apply changes.");
     } else if (!this.options.dryRun && this.metrics.recordsWithChanges > 0) {
-      console.log("");
-      console.log("✅ Changes have been applied to the index.");
+      this.logger.logRaw("");
+      this.logger.logRaw("✅ Changes have been applied to the index.");
     }
 
     if (this.metrics.errors.length > 0) {
-      console.log("");
-      console.log("❌ Errors encountered:");
-      console.log(`   ${this.metrics.errors.length} issues found`);
+      this.logger.logRaw("");
+      this.logger.logRaw("❌ Errors encountered:");
+      this.logger.logRaw(`   ${this.metrics.errors.length} issues found`);
     }
   }
 
   private logDetailedResults(result: ReplaceObjectIdWithSlugResult): void {
-    console.log(`📄 Records without slug: ${result.recordsWithoutSlug}`);
-    console.log(`🎯 Records not matching criteria: ${result.recordsNotMatchingCriteria}`);
+    this.logger.logRaw(`📄 Records without slug: ${result.recordsWithoutSlug}`);
+    this.logger.logRaw(`🎯 Records not matching criteria: ${result.recordsNotMatchingCriteria}`);
   }
 }
 
