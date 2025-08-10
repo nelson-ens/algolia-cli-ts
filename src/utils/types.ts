@@ -3,6 +3,10 @@ import { generateUid } from "./uuidUtils";
 export interface AlgoliaRecord {
   objectID: string;
   title?: string;
+  slug?: string;
+  resourceType?: string;
+  extUrl?: string;
+  publishedDate?: string | number;
   [key: string]: unknown;
 }
 
@@ -13,6 +17,27 @@ export interface ProcessingMetrics {
   recordsWithoutTitle: number;
   batchesProcessed: number;
   errors: string[];
+}
+
+export interface ResourceTypeConfig {
+  resourceType: string;
+  schemaPath: string;
+}
+
+export interface ActionConfig {
+  appId: string;
+  apiKey: string;
+  indexName: string;
+  dryRun?: boolean;
+  batchSize?: number;
+}
+
+export interface DateProcessingMetrics extends ProcessingMetrics {
+  fieldFound: number;
+  fieldEmpty: number;
+  fieldValidTimestamps: number;
+  fieldConvertibleDates: number;
+  fieldInvalidDates: number;
 }
 
 /**

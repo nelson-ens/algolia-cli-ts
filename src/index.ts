@@ -2,11 +2,12 @@
 
 import { Command } from "commander";
 import dotenv from "dotenv";
-// import { replaceObjectIds } from './actions/replace-objectid';
+
+// Refactored action implementations (now the default)
 import { replaceResourceObjectIds } from "./actions/replace-resource-objectid";
 import { findMatchingObjectId } from "./actions/find-matching-objectid";
 import { replaceObjectIdWithSlug } from "./actions/replace-objectid-with-slug";
-import { generateUuid } from "./actions/generate-uuid";
+import { generateUuid, generateUuidAdvanced } from "./actions/generate-uuid";
 import { fixPublishedDate } from "./actions/fix-published-date";
 import { normalizeDateField } from "./actions/normalize-date-field";
 
@@ -19,28 +20,6 @@ program
   .description("CLI tool for common Algolia operations")
   .version("1.0.0");
 
-// program
-//   .command('replace-objectid')
-//   .description('Replace objectID with title.toLowerCase() for all records (DESTRUCTIVE)')
-//   .option('--dry-run', 'Run without making changes (default behavior)')
-//   .option('--execute', 'Actually execute the changes')
-//   .option('--index <name>', 'Index name (overrides .env)')
-//   .action(async (options) => {
-//     try {
-//       // If --execute is explicitly set, run in execute mode
-//       // Otherwise, default to dry-run mode
-//       const dryRun = !options.execute;
-
-//       await replaceObjectIds({
-//         indexName: options.index,
-//         dryRun
-//       });
-//     } catch (error) {
-//       console.error('❌ Command failed:', error instanceof Error ? error.message : String(error));
-//       process.exit(1);
-//     }
-//   });
-
 program
   .command("replace-resource-objectid")
   .description(
@@ -49,14 +28,16 @@ program
   .option("--dry-run", "Run without making changes (default behavior)")
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
-
-      await replaceResourceObjectIds({
-        indexName: options.index,
+      const actionOptions = {
+        indexName: options.index || undefined,
         dryRun,
-      });
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      };
+      await replaceResourceObjectIds(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
@@ -70,11 +51,14 @@ program
   .command("find-matching-objectid")
   .description("Find records where objectID equals generateUid(title)")
   .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .action(async (options) => {
     try {
-      await findMatchingObjectId({
-        indexName: options.index,
-      });
+      const actionOptions = {
+        indexName: options.index || undefined,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      };
+      await findMatchingObjectId(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
@@ -92,14 +76,16 @@ program
   .option("--dry-run", "Run without making changes (default behavior)")
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
-
-      await replaceObjectIdWithSlug({
-        indexName: options.index,
+      const actionOptions = {
+        indexName: options.index || undefined,
         dryRun,
-      });
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      };
+      await replaceObjectIdWithSlug(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
@@ -111,10 +97,23 @@ program
 
 program
   .command("generate-uuid")
-  .description("Generate a UUID from an input string using interactive prompt")
-  .action(async () => {
+  .description("Generate a UUID from an input string")
+  .option("--input <string>", "Input string (non-interactive mode)")
+  .action(async (options) => {
     try {
-      await generateUuid();
+      if (options.input) {
+        // Use advanced version for non-interactive mode
+        const result = await generateUuidAdvanced({
+          input: options.input,
+          interactive: false
+        });
+        if (!result.success) {
+          process.exit(1);
+        }
+      } else {
+        // Use legacy-compatible version for interactive mode
+        await generateUuid();
+      }
     } catch (error) {
       console.error(
         "❌ Command failed:",
@@ -133,15 +132,17 @@ program
   .option("--dry-run", "Run without making changes (default behavior)")
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
-
-      await fixPublishedDate({
-        indexName: options.index,
+      const actionOptions = {
+        indexName: options.index || undefined,
         resourceType: options.resourceType,
         dryRun,
-      });
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      };
+      await fixPublishedDate(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
@@ -160,15 +161,17 @@ program
   .option("--dry-run", "Run without making changes (default behavior)")
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
-
-      await normalizeDateField({
-        indexName: options.index,
+      const actionOptions = {
+        indexName: options.index || undefined,
         fieldName: options.field,
         dryRun,
-      });
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      };
+      await normalizeDateField(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
