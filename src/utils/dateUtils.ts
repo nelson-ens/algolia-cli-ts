@@ -16,6 +16,10 @@ export function convertMsToSeconds(timestampMs: number): number {
   return Math.floor(timestampMs / 1000);
 }
 
+export function convertMicrosecondsToSeconds(timestampMicros: number): number {
+  return Math.floor(timestampMicros / 1000000);
+}
+
 export function dateStringToUnixTimestamp(
   dateString: string, 
   format: string = 'YYYY-MM-DD'
@@ -30,8 +34,14 @@ export function dateStringToUnixTimestamp(
 }
 
 export function normalizeTimestamp(input: number): number {
+  // Check for microseconds (16+ digits, > 999999999999999)
+  if (input > 999999999999999) {
+    return convertMicrosecondsToSeconds(input);
+  }
+  // Check for milliseconds (13+ digits, > 9999999999)
   if (input > 9999999999) {
     return convertMsToSeconds(input);
   }
+  // Already in seconds
   return input;
 }

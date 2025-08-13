@@ -41,7 +41,9 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     this.batchProcessor = new BatchProcessor({
       batchSize: options.batchSize || 1000,
       onBatchStart: (batchNumber) => {
-        this.logger.progress(`Updating batch`, batchNumber, 0);
+        // Calculate estimated total batches based on current records to fix
+        const estimatedTotalBatches = Math.ceil(this.recordsToFix.length / (options.batchSize || 1000));
+        this.logger.progress(`Updating batch`, batchNumber, estimatedTotalBatches);
       },
     });
     this.analysis = this.initializeDateMetrics();
@@ -130,12 +132,20 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
       if (this.isAlreadyNormalizedTimestamp(fieldValue, convertedValue)) {
         this.analysis.fieldValidTimestamps++;
       } else {
-        this.analysis.fieldConvertibleDates++;
-        this.recordsToFix.push({
-          record,
-          originalValue: fieldValue,
-          convertedValue: convertedValue,
-        });
+        // Additional safety check to ensure no invalid values make it to recordsToFix
+        if (isFinite(convertedValue) && convertedValue > 0 && convertedValue <= 2147483647) {
+          this.analysis.fieldConvertibleDates++;
+          this.recordsToFix.push({
+            record,
+            originalValue: fieldValue,
+            convertedValue: convertedValue,
+          });
+        } else {
+          this.analysis.fieldInvalidDates++;
+          this.analysis.errors.push(
+            `Invalid converted value ${convertedValue} for ${this.options.fieldName} in record ${record.objectID}: "${fieldValue}"`
+          );
+        }
       }
     } else {
       this.analysis.fieldInvalidDates++;
@@ -168,18 +178,22 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
 
     // If it's already a number, try to normalize it
     if (typeof value === "number") {
-      if (value > 0) {
-        const normalized = normalizeTimestamp(value);
-        if (normalized > 0 && normalized <= 2147483647) {
-          return normalized;
-        }
+      // Explicitly check for Infinity and NaN
+      if (!isFinite(value) || value <= 0) {
+        return null;
+      }
+      const normalized = normalizeTimestamp(value);
+      if (isFinite(normalized) && normalized > 0 && normalized <= 2147483647) {
+        return normalized;
       }
       return null;
     }
 
     // If it's a string, try various parsing strategies
     if (typeof value === "string") {
-      return this.parseStringDate(value);
+      const result = this.parseStringDate(value);
+      // Additional validation to ensure no Infinity values pass through
+      return (result !== null && isFinite(result)) ? result : null;
     }
 
     return null;
@@ -191,23 +205,43 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     // First, try to parse as numeric timestamp
     const numericValue = parseFloat(trimmedValue);
     if (!isNaN(numericValue) && isFinite(numericValue) && numericValue > 0) {
-      if (numericValue >= 946684800 && numericValue <= 2147483647) {
-        return Math.floor(numericValue); // Timestamp in seconds
-      } else if (
-        numericValue >= 946684800000 &&
-        numericValue <= 2147483647000
-      ) {
-        return Math.floor(numericValue / 1000); // Timestamp in milliseconds
+      // Microsecond timestamp (13+ digits, >= 946684800000000)
+      if (numericValue >= 946684800000000 && numericValue <= 2147483647000000) {
+        return Math.floor(numericValue / 1000000); // Convert microseconds to seconds
+      }
+      // Millisecond timestamp (10-13 digits)
+      else if (numericValue >= 946684800000 && numericValue <= 2147483647000) {
+        return Math.floor(numericValue / 1000); // Convert milliseconds to seconds
+      }
+      // Second timestamp (9-10 digits)
+      else if (numericValue >= 946684800 && numericValue <= 2147483647) {
+        return Math.floor(numericValue); // Already in seconds
+      }
+    }
+
+    // Handle YYYY-MM-DD format specifically first (most common)
+    const isoDateMatch = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoDateMatch) {
+      const [, year, month, day] = isoDateMatch;
+      const date = new Date(
+        parseInt(year!),
+        parseInt(month!) - 1,
+        parseInt(day!)
+      );
+      if (!isNaN(date.getTime())) {
+        return Math.floor(date.getTime() / 1000);
       }
     }
 
     // Try various date format parsing
     const formats = [
-      "YYYY-MM-DD",
       "YYYY-MM-DD HH:mm:ss",
       "MM/DD/YYYY",
       "DD/MM/YYYY",
       "YYYY/MM/DD",
+      "YYYY-MM-DD HH:mm",
+      "MM-DD-YYYY",
+      "DD-MM-YYYY",
     ];
 
     for (const format of formats) {
@@ -236,11 +270,15 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
 
   private logAnalysisResults(): void {
     this.logger.section("Analysis Complete");
-    this.logger.logRaw(`📊 Total records analyzed: ${this.analysis.processedRecords}`);
+    this.logger.logRaw(
+      `📊 Total records analyzed: ${this.analysis.processedRecords}`
+    );
     this.logger.logRaw(
       `📝 Field "${this.options.fieldName}" found: ${this.analysis.fieldFound}`
     );
-    this.logger.logRaw(`❌ Field empty/null/undefined: ${this.analysis.fieldEmpty}`);
+    this.logger.logRaw(
+      `❌ Field empty/null/undefined: ${this.analysis.fieldEmpty}`
+    );
     this.logger.logRaw(
       `✅ Already valid timestamps: ${this.analysis.fieldValidTimestamps}`
     );
@@ -250,7 +288,9 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     this.logger.logRaw(
       `⚠️  Invalid/unconvertible values: ${this.analysis.fieldInvalidDates}`
     );
-    this.logger.logRaw(`📦 Batches processed: ${this.analysis.batchesProcessed}`);
+    this.logger.logRaw(
+      `📦 Batches processed: ${this.analysis.batchesProcessed}`
+    );
     this.logger.logRaw("");
   }
 
@@ -265,10 +305,17 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
     await this.batchProcessor.processItems(
       this.recordsToFix,
       async (batch, batchNumber) => {
-        const batchRecords = batch.map((item) => ({
-          ...item.record,
-          [this.options.fieldName]: item.convertedValue,
-        }));
+        const batchRecords = batch.map((item) => {
+          // Final validation before sending to Algolia
+          if (!isFinite(item.convertedValue) || item.convertedValue <= 0 || item.convertedValue > 2147483647) {
+            throw new Error(`Invalid timestamp value ${item.convertedValue} for record ${item.record.objectID}`);
+          }
+          
+          return {
+            ...item.record,
+            [this.options.fieldName]: item.convertedValue,
+          };
+        });
 
         await this.saveRecords(batchRecords);
         this.logger.info(
@@ -287,7 +334,7 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
   private logDryRunResults(): void {
     this.logger.info("🔄 Records that would be updated:");
 
-    const samplesToShow = Math.min(10, this.recordsToFix.length);
+    const samplesToShow = Math.min(10000, this.recordsToFix.length);
 
     for (let i = 0; i < samplesToShow; i++) {
       const item = this.recordsToFix[i];
@@ -317,16 +364,20 @@ export class NormalizeDateFieldAction extends BaseAlgoliaAction<
 
     if (this.options.dryRun && this.recordsToFix.length > 0) {
       this.logger.logRaw("");
-      this.logger.logRaw("💡 This was a dry run. Use --execute to apply changes.");
+      this.logger.logRaw(
+        "💡 This was a dry run. Use --execute to apply changes."
+      );
     }
 
     if (this.analysis.errors.length > 0) {
       this.logger.logRaw("");
       this.logger.logRaw("❌ Errors encountered:");
       this.logger.logRaw(`   ${this.analysis.errors.length} issues found`);
-      if (this.analysis.errors.length <= 5) {
-        this.analysis.errors.forEach((error) => this.logger.logRaw(`   ${error}`));
-      }
+      // if (this.analysis.errors.length <= 5) {
+      this.analysis.errors.forEach((error) =>
+        this.logger.logRaw(`   ${error}`)
+      );
+      // }
     }
   }
 }

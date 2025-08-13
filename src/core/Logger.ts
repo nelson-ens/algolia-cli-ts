@@ -80,9 +80,28 @@ export class Logger {
   }
 
   progress(message: string, current: number, total: number): void {
+    // Handle invalid total values to prevent division by zero
+    if (total <= 0 || !isFinite(total)) {
+      const fullMessage = `${message} (${current})`;
+      const entry: LogEntry = {
+        level: LogLevel.INFO,
+        message: fullMessage,
+        timestamp: new Date(),
+      };
+      this.entries.push(entry);
+      console.log(`ℹ️ ${fullMessage}`);
+      return;
+    }
+
     const percentage = Math.round((current / total) * 100);
-    const progressBar = '█'.repeat(Math.floor(percentage / 5)) + '░'.repeat(20 - Math.floor(percentage / 5));
-    const fullMessage = `${message} [${progressBar}] ${percentage}% (${current}/${total})`;
+    
+    // Ensure percentage is finite and within reasonable bounds
+    const safePercentage = isFinite(percentage) ? Math.max(0, Math.min(100, percentage)) : 0;
+    const progressBarLength = Math.floor(safePercentage / 5);
+    const progressBar = '█'.repeat(Math.max(0, Math.min(20, progressBarLength))) + 
+                       '░'.repeat(Math.max(0, 20 - Math.min(20, progressBarLength)));
+    
+    const fullMessage = `${message} [${progressBar}] ${safePercentage}% (${current}/${total})`;
     
     // Add to log entries
     const entry: LogEntry = {

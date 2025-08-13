@@ -12,7 +12,9 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'No linter configured. Consider adding ESLint or Biome.'",
-    "test": "echo 'No tests configured. Consider adding Jest or Vitest.'"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "algolia",
@@ -29,7 +31,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.9.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
