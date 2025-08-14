@@ -10,6 +10,8 @@ import { replaceObjectIdWithSlug } from "./actions/replace-objectid-with-slug";
 import { generateUuid, generateUuidAdvanced } from "./actions/generate-uuid";
 import { fixPublishedDate } from "./actions/fix-published-date";
 import { normalizeDateField } from "./actions/normalize-date-field";
+import { findDuplicateSlug } from "./actions/find-duplicate-slug";
+import { sanitizeDateValues } from "./actions/sanitize-date-values";
 
 dotenv.config();
 
@@ -29,7 +31,10 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
-  .option("--log-file", "Save results to log file in logs folder (automatically named)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -54,7 +59,10 @@ program
   .description("Find records where objectID equals generateUid(title)")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
-  .option("--log-file", "Save results to log file in logs folder (automatically named)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
   .action(async (options) => {
     try {
       const actionOptions = {
@@ -81,7 +89,10 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
-  .option("--log-file", "Save results to log file in logs folder (automatically named)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -111,7 +122,7 @@ program
         // Use advanced version for non-interactive mode
         const result = await generateUuidAdvanced({
           input: options.input,
-          interactive: false
+          interactive: false,
         });
         if (!result.success) {
           process.exit(1);
@@ -139,7 +150,10 @@ program
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
-  .option("--log-file", "Save results to log file in logs folder (automatically named)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -165,12 +179,18 @@ program
   .description(
     "Browse all records and normalize a specific date field to Unix timestamps in seconds (DESTRUCTIVE)"
   )
-  .requiredOption("--field <name>", "Field name to normalize (e.g., publishedDate, createdAt)")
+  .requiredOption(
+    "--field <name>",
+    "Field name to normalize (e.g., publishedDate, createdAt)"
+  )
   .option("--dry-run", "Run without making changes (default behavior)")
   .option("--execute", "Actually execute the changes")
   .option("--index <name>", "Index name (overrides .env)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
-  .option("--log-file", "Save results to log file in logs folder (automatically named)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
   .action(async (options) => {
     try {
       const dryRun = !options.execute;
@@ -182,6 +202,70 @@ program
         logFile: options.logFile || false,
       };
       await normalizeDateField(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("sanitize-date-values")
+  .description(
+    "Analyze and sanitize all date-like values across all record fields to Unix timestamps in seconds (DESTRUCTIVE)"
+  )
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the changes")
+  .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+      const actionOptions = {
+        indexName: options.index || undefined,
+        dryRun,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
+      };
+      await sanitizeDateValues(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("find-duplicate-slug")
+  .description(
+    "Find and handle duplicate records with the same slug, replacing title-generated objectIDs with slug-generated content (DESTRUCTIVE)"
+  )
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the changes")
+  .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+      const actionOptions = {
+        indexName: options.index || undefined,
+        dryRun,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
+      };
+      await findDuplicateSlug(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",

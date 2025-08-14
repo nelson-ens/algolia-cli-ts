@@ -26,8 +26,10 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
   }
 
   protected async processRecords(): Promise<FindMatchingObjectIdResult> {
-    this.logActionStart("Find records with matching objectID action", 
-      "Find records where objectID equals generateUid(title)");
+    this.logActionStart(
+      "Find records with matching objectID action",
+      "Find records where objectID equals generateUid(title)"
+    );
 
     for await (const records of this.browseRecords()) {
       for (const record of records) {
@@ -61,25 +63,28 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
   }
 
   private logMatchingRecord(record: AlgoliaRecord): void {
-    const title = (record as any).title || 'N/A';
-    const slug = (record as any).slug || 'N/A';
-    const resourceType = (record as any).resourceType || 'N/A';
-    
-    this.logger.success(
-      `Match found: ${record.objectID}`,
-      { title, slug, resourceType }
-    );
+    const title = (record as any).title || "N/A";
+    const slug = (record as any).slug || "N/A";
+    const resourceType = (record as any).resourceType || "N/A";
+
+    this.logger.success(`Match found: ${record.objectID}`, {
+      title,
+      slug,
+      resourceType,
+    });
   }
 
   private logMatchingRecordsSummary(): void {
     this.logger.section("Search Results");
-    this.logger.logRaw(`✅ Matching records found: ${this.matchingRecords.length}`);
+    this.logger.logRaw(
+      `✅ Matching records found: ${this.matchingRecords.length}`
+    );
 
     if (this.matchingRecords.length > 0) {
       this.logger.logRaw("");
       this.logger.logRaw("🎯 Matching Records:");
       this.matchingRecords.forEach((record, index) => {
-        const title = (record as any).title || 'N/A';
+        const title = (record as any).title || "N/A";
         this.logger.logRaw(`   ${index + 1}. ${record.objectID} - "${title}"`);
       });
     }
@@ -96,10 +101,18 @@ export class FindMatchingObjectIdAction extends BaseAlgoliaAction<
     this.logger.logRaw("");
     this.logger.logRaw("📈 Search Complete!");
     this.logger.logRaw("━".repeat(50));
-    this.logger.logRaw(`📊 Total records processed: ${this.metrics.processedRecords}`);
-    this.logger.logRaw(`✅ Matching records found: ${this.matchingRecords.length}`);
-    this.logger.logRaw(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
-    this.logger.logRaw(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
+    this.logger.logRaw(
+      `📊 Total records processed: ${this.metrics.processedRecords}`
+    );
+    this.logger.logRaw(
+      `✅ Matching records found: ${this.matchingRecords.length}`
+    );
+    this.logger.logRaw(
+      `⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`
+    );
+    this.logger.logRaw(
+      `📦 Batches processed: ${this.metrics.batchesProcessed}`
+    );
     this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.metrics.errors.length > 0) {
@@ -115,7 +128,7 @@ export async function findMatchingObjectId(
 ): Promise<void> {
   const action = new FindMatchingObjectIdAction(options);
   const result = await action.execute();
-  
+
   if (!result.success) {
     process.exit(1);
   }

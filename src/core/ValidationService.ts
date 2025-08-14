@@ -23,7 +23,9 @@ export class ValidationService {
     );
   }
 
-  static validateRecordWithTitle(record: unknown): record is AlgoliaRecord & { title: string } {
+  static validateRecordWithTitle(
+    record: unknown
+  ): record is AlgoliaRecord & { title: string } {
     return (
       this.validateBasicRecord(record) &&
       "title" in record &&
@@ -32,7 +34,9 @@ export class ValidationService {
     );
   }
 
-  static validateRecordWithResourceType(record: unknown): record is AlgoliaRecord & { resourceType: string } {
+  static validateRecordWithResourceType(
+    record: unknown
+  ): record is AlgoliaRecord & { resourceType: string } {
     return (
       this.validateBasicRecord(record) &&
       "resourceType" in record &&
@@ -41,7 +45,9 @@ export class ValidationService {
     );
   }
 
-  static validateRecordWithSlug(record: unknown): record is AlgoliaRecord & { slug: string } {
+  static validateRecordWithSlug(
+    record: unknown
+  ): record is AlgoliaRecord & { slug: string } {
     return (
       this.validateBasicRecord(record) &&
       "slug" in record &&
@@ -50,11 +56,15 @@ export class ValidationService {
     );
   }
 
-  static validateObjectIdMatchesTitle(record: AlgoliaRecord & { title: string }): boolean {
+  static validateObjectIdMatchesTitle(
+    record: AlgoliaRecord & { title: string }
+  ): boolean {
     return record.objectID === generateUid(record.title);
   }
 
-  static validateObjectIdMatchesSlug(record: AlgoliaRecord & { slug: string }): boolean {
+  static validateObjectIdMatchesSlug(
+    record: AlgoliaRecord & { slug: string }
+  ): boolean {
     return record.objectID === generateUid(record.slug);
   }
 
@@ -66,7 +76,7 @@ export class ValidationService {
       const value = process.env[envVar];
       if (!value) {
         errors.push(`Missing required environment variable: ${envVar}`);
-      } else if (value.trim() === '') {
+      } else if (value.trim() === "") {
         warnings.push(`Environment variable ${envVar} is empty`);
       }
     }
@@ -78,20 +88,26 @@ export class ValidationService {
     };
   }
 
-  static validateResourceTypeMapping(mappingStr: string | undefined): ValidationResult {
+  static validateResourceTypeMapping(
+    mappingStr: string | undefined
+  ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
     if (!mappingStr) {
-      errors.push("RESOURCE_TYPE_SCHEMA_PATH_MAPPING environment variable is required");
+      errors.push(
+        "RESOURCE_TYPE_SCHEMA_PATH_MAPPING environment variable is required"
+      );
       return { isValid: false, errors, warnings };
     }
 
     try {
       const mapping = JSON.parse(mappingStr);
-      
-      if (typeof mapping !== 'object' || mapping === null) {
-        errors.push("RESOURCE_TYPE_SCHEMA_PATH_MAPPING must be a valid JSON object");
+
+      if (typeof mapping !== "object" || mapping === null) {
+        errors.push(
+          "RESOURCE_TYPE_SCHEMA_PATH_MAPPING must be a valid JSON object"
+        );
         return { isValid: false, errors, warnings };
       }
 
@@ -101,23 +117,33 @@ export class ValidationService {
       }
 
       for (const [resourceType, config] of entries) {
-        if (!resourceType || resourceType.trim() === '') {
+        if (!resourceType || resourceType.trim() === "") {
           errors.push("Resource type cannot be empty");
           continue;
         }
 
-        if (typeof config !== 'object' || config === null) {
-          errors.push(`Invalid configuration for resource type: ${resourceType}`);
+        if (typeof config !== "object" || config === null) {
+          errors.push(
+            `Invalid configuration for resource type: ${resourceType}`
+          );
           continue;
         }
 
-        if (!('schemaPath' in config) || typeof (config as any).schemaPath !== 'string') {
-          errors.push(`Missing or invalid schemaPath for resource type: ${resourceType}`);
+        if (
+          !("schemaPath" in config) ||
+          typeof (config as any).schemaPath !== "string"
+        ) {
+          errors.push(
+            `Missing or invalid schemaPath for resource type: ${resourceType}`
+          );
         }
       }
-
     } catch (error) {
-      errors.push(`Invalid JSON format in RESOURCE_TYPE_SCHEMA_PATH_MAPPING: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `Invalid JSON format in RESOURCE_TYPE_SCHEMA_PATH_MAPPING: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
 
     return {
@@ -136,7 +162,9 @@ export class ValidationService {
 
       for (const rule of rules) {
         if (!rule.validate(value)) {
-          errors.push(rule.message || `Validation failed for rule: ${rule.name}`);
+          errors.push(
+            rule.message || `Validation failed for rule: ${rule.name}`
+          );
         }
       }
 

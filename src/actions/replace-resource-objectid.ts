@@ -33,11 +33,15 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
 
   protected async processRecords(): Promise<ReplaceResourceObjectIdResult> {
     this.validateConfiguration();
-    this.logActionStart("Replace resource objectID action", 
-      "Target: Resource records using schemaPath+title+resourceType");
+    this.logActionStart(
+      "Replace resource objectID action",
+      "Target: Resource records using schemaPath+title+resourceType"
+    );
 
     await this.confirmDestructiveAction(
-      `This will modify objectID values for records with resourceType="${this.resourceConfigs.map(c => c.resourceType).join('", "')}" in index "${this.config.indexName}".`
+      `This will modify objectID values for records with resourceType="${this.resourceConfigs
+        .map((c) => c.resourceType)
+        .join('", "')}" in index "${this.config.indexName}".`
     );
 
     const result: ReplaceResourceObjectIdResult = {
@@ -47,7 +51,7 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
     };
 
     const filters = this.buildResourceTypeFilters();
-    
+
     for await (const records of this.browseRecords(filters)) {
       const updatedRecords: AlgoliaRecord[] = [];
       const oldObjectIds: string[] = [];
@@ -78,13 +82,13 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
   private validateConfiguration(): void {
     // Validate environment variables
     const envValidation = ValidationService.validateEnvironmentVariables([
-      'ALGOLIA_APP_ID',
-      'ALGOLIA_API_KEY',
-      'ALGOLIA_INDEX_NAME',
+      "ALGOLIA_APP_ID",
+      "ALGOLIA_API_KEY",
+      "ALGOLIA_INDEX_NAME",
     ]);
 
     if (!envValidation.isValid) {
-      envValidation.errors.forEach(error => this.logger.error(error));
+      envValidation.errors.forEach((error) => this.logger.error(error));
       process.exit(1);
     }
 
@@ -94,20 +98,28 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
     );
 
     if (!mappingValidation.isValid) {
-      mappingValidation.errors.forEach(error => this.logger.error(error));
+      mappingValidation.errors.forEach((error) => this.logger.error(error));
       process.exit(1);
     }
 
     // Parse and store resource configurations
-    const resourceMappingObj = JSON.parse(process.env.RESOURCE_TYPE_SCHEMA_PATH_MAPPING!);
-    this.resourceConfigs = Object.entries(resourceMappingObj).map(([resourceType, config]) => ({
-      resourceType,
-      schemaPath: (config as any).schemaPath,
-    }));
+    const resourceMappingObj = JSON.parse(
+      process.env.RESOURCE_TYPE_SCHEMA_PATH_MAPPING!
+    );
+    this.resourceConfigs = Object.entries(resourceMappingObj).map(
+      ([resourceType, config]) => ({
+        resourceType,
+        schemaPath: (config as any).schemaPath,
+      })
+    );
 
     this.logger.info("Target resource configurations:");
     this.resourceConfigs.forEach((config, index) => {
-      this.logger.logRaw(`   ${index + 1}. resourceType: ${config.resourceType} → schemaPath: ${config.schemaPath}`);
+      this.logger.logRaw(
+        `   ${index + 1}. resourceType: ${config.resourceType} → schemaPath: ${
+          config.schemaPath
+        }`
+      );
     });
   }
 
@@ -117,24 +129,36 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
       .join(" OR ");
   }
 
-  private processRecord(record: AlgoliaRecord): { newRecord: AlgoliaRecord; oldObjectId: string } | null {
+  private processRecord(
+    record: AlgoliaRecord
+  ): { newRecord: AlgoliaRecord; oldObjectId: string } | null {
     // Validate record structure
-    if (!ValidationService.validateRecordWithTitle(record) || 
-        !ValidationService.validateRecordWithResourceType(record)) {
+    if (
+      !ValidationService.validateRecordWithTitle(record) ||
+      !ValidationService.validateRecordWithResourceType(record)
+    ) {
       this.metrics.recordsWithoutTitle++;
-      this.logger.warn(`Record ${record.objectID} has invalid structure or missing title/resourceType`);
+      this.logger.warn(
+        `Record ${record.objectID} has invalid structure or missing title/resourceType`
+      );
       return null;
     }
 
     // Find the correct configuration for this record's resource type
-    const config = this.resourceConfigs.find(c => c.resourceType === (record as any).resourceType);
+    const config = this.resourceConfigs.find(
+      (c) => c.resourceType === (record as any).resourceType
+    );
     if (!config) {
-      this.metrics.errors.push(`No configuration found for resourceType: ${(record as any).resourceType}`);
+      this.metrics.errors.push(
+        `No configuration found for resourceType: ${
+          (record as any).resourceType
+        }`
+      );
       return null;
     }
 
     // Generate new object ID
-    const extUrl = (record as any).extUrl || '';
+    const extUrl = (record as any).extUrl || "";
     const uuidString = `${config.schemaPath};${config.resourceType};${record.title};${extUrl}`;
     const newObjectId = generateUid(uuidString);
 
@@ -155,8 +179,10 @@ export class ReplaceResourceObjectIdAction extends BaseAlgoliaAction<
   }
 
   protected override validateRecord(record: unknown): record is AlgoliaRecord {
-    return ValidationService.validateRecordWithTitle(record) &&
-           ValidationService.validateRecordWithResourceType(record);
+    return (
+      ValidationService.validateRecordWithTitle(record) &&
+      ValidationService.validateRecordWithResourceType(record)
+    );
   }
 }
 
@@ -165,7 +191,7 @@ export async function replaceResourceObjectIds(
 ): Promise<void> {
   const action = new ReplaceResourceObjectIdAction(options);
   const result = await action.execute();
-  
+
   if (!result.success) {
     process.exit(1);
   }

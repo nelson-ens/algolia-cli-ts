@@ -27,8 +27,10 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
   }
 
   protected async processRecords(): Promise<ReplaceObjectIdWithSlugResult> {
-    this.logActionStart("Replace objectID with slug-based UUID action", 
-      "Target: Records where objectID = generateUid(title) AND slug is defined");
+    this.logActionStart(
+      "Replace objectID with slug-based UUID action",
+      "Target: Records where objectID = generateUid(title) AND slug is defined"
+    );
 
     await this.confirmDestructiveAction(
       `This will replace objectID with generateUid(slug) for matching records in index "${this.config.indexName}".`
@@ -70,7 +72,7 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
   }
 
   private processRecord(
-    record: AlgoliaRecord, 
+    record: AlgoliaRecord,
     result: ReplaceObjectIdWithSlugResult
   ): { newRecord: AlgoliaRecord; oldObjectId: string } | null {
     // Validate record has title
@@ -102,7 +104,9 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
     // Log the change
     const action = this.options.dryRun ? "Would change" : "Changing";
     const slug = (record as any).slug;
-    this.logger.info(`🔄 ${action}: "${record.objectID}" → "${newObjectId}" (slug: "${slug}")`);
+    this.logger.info(
+      `🔄 ${action}: "${record.objectID}" → "${newObjectId}" (slug: "${slug}")`
+    );
 
     return {
       newRecord: { ...record, objectID: newObjectId },
@@ -111,8 +115,10 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
   }
 
   protected override validateRecord(record: unknown): record is AlgoliaRecord {
-    return ValidationService.validateRecordWithTitle(record) &&
-           ValidationService.validateRecordWithResourceType(record);
+    return (
+      ValidationService.validateRecordWithTitle(record) &&
+      ValidationService.validateRecordWithResourceType(record)
+    );
   }
 
   protected override logResults(): void {
@@ -121,15 +127,25 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
     this.logger.logRaw("");
     this.logger.logRaw("📈 Processing Complete!");
     this.logger.logRaw("━".repeat(50));
-    this.logger.logRaw(`📊 Total records processed: ${this.metrics.processedRecords}`);
-    this.logger.logRaw(`🔄 Records that would change: ${this.metrics.recordsWithChanges}`);
-    this.logger.logRaw(`⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`);
-    this.logger.logRaw(`📦 Batches processed: ${this.metrics.batchesProcessed}`);
+    this.logger.logRaw(
+      `📊 Total records processed: ${this.metrics.processedRecords}`
+    );
+    this.logger.logRaw(
+      `🔄 Records that would change: ${this.metrics.recordsWithChanges}`
+    );
+    this.logger.logRaw(
+      `⚠️  Records without title: ${this.metrics.recordsWithoutTitle}`
+    );
+    this.logger.logRaw(
+      `📦 Batches processed: ${this.metrics.batchesProcessed}`
+    );
     this.logger.logRaw(`⏱️  Processing time: ${duration.toFixed(2)}s`);
 
     if (this.options.dryRun && this.metrics.recordsWithChanges > 0) {
       this.logger.logRaw("");
-      this.logger.logRaw("💡 This was a dry run. Use --execute to apply changes.");
+      this.logger.logRaw(
+        "💡 This was a dry run. Use --execute to apply changes."
+      );
     } else if (!this.options.dryRun && this.metrics.recordsWithChanges > 0) {
       this.logger.logRaw("");
       this.logger.logRaw("✅ Changes have been applied to the index.");
@@ -144,7 +160,9 @@ export class ReplaceObjectIdWithSlugAction extends BaseAlgoliaAction<
 
   private logDetailedResults(result: ReplaceObjectIdWithSlugResult): void {
     this.logger.logRaw(`📄 Records without slug: ${result.recordsWithoutSlug}`);
-    this.logger.logRaw(`🎯 Records not matching criteria: ${result.recordsNotMatchingCriteria}`);
+    this.logger.logRaw(
+      `🎯 Records not matching criteria: ${result.recordsNotMatchingCriteria}`
+    );
   }
 }
 
@@ -153,7 +171,7 @@ export async function replaceObjectIdWithSlug(
 ): Promise<void> {
   const action = new ReplaceObjectIdWithSlugAction(options);
   const result = await action.execute();
-  
+
   if (!result.success) {
     process.exit(1);
   }
