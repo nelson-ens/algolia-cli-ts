@@ -50,6 +50,6 @@ coverage/
 tmp/
 temp/
 CLAUDE.md
-*.json
 logs/
 output/
+**backup**
