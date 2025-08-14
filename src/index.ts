@@ -13,6 +13,9 @@ import { normalizeDateField } from "./actions/normalize-date-field";
 import { findDuplicateSlug } from "./actions/find-duplicate-slug";
 import { sanitizeDateValues } from "./actions/sanitize-date-values";
 import { deleteRecordsByPattern } from "./actions/delete-records-by-pattern";
+import { findInvalidRecords } from "./actions/find-invalid-records";
+import { backupIndex } from "./actions/backup-index";
+import { restoreIndex } from "./actions/restore-index";
 
 dotenv.config();
 
@@ -303,6 +306,100 @@ program
         logFile: options.logFile || false,
       };
       await deleteRecordsByPattern(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("find-invalid-records")
+  .description(
+    "Find and optionally delete records with invalid values (null, undefined, empty string, or missing) for specified keys (DESTRUCTIVE)"
+  )
+  .requiredOption("--keys <list>", "Comma-delimited list of keys to check for invalid values")
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the deletions")
+  .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+      const actionOptions = {
+        indexName: options.index || undefined,
+        keys: options.keys,
+        dryRun,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
+      };
+      await findInvalidRecords(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("backup-index")
+  .description("Backup an Algolia index including records, settings, rules and synonyms")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--output-dir <path>", "Output directory for backup files (default: current directory)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const actionOptions = {
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        outputDir: options.outputDir || undefined,
+        logFile: options.logFile || false,
+      };
+      await backupIndex(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("restore-index")
+  .description("Restore an Algolia index from backup files including records, settings, rules and synonyms (DESTRUCTIVE)")
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the restore")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option("--input-dir <path>", "Input directory for backup files (default: current directory)")
+  .option("--backup-prefix <prefix>", "Prefix for backup files (default: prompted index name)")
+  .option("--skip-confirmation", "Skip confirmation prompt for destructive operation")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+      const actionOptions = {
+        dryRun,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        inputDir: options.inputDir || undefined,
+        backupPrefix: options.backupPrefix || undefined,
+        skipConfirmation: options.skipConfirmation || false,
+        logFile: options.logFile || false,
+      };
+      await restoreIndex(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
