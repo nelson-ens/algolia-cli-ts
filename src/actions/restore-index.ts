@@ -8,7 +8,6 @@ import { join } from "path";
 interface RestoreIndexOptions extends ActionOptions {
   inputDir?: string;
   backupPrefix?: string;
-  skipConfirmation?: boolean;
 }
 
 interface RestoreData {
@@ -44,7 +43,7 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
   protected override validateAndGetConfig(): AlgoliaConfig {
     const appId = process.env.ALGOLIA_APP_ID;
     const apiKey = process.env.ALGOLIA_API_KEY;
-    let indexName = this.options.indexName;
+    let indexName = this.options.indexName || ""; // Allow empty index name for restore
 
     if (!appId || !apiKey) {
       console.error("❌ Missing required environment variables:");
@@ -52,10 +51,7 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
       process.exit(1);
     }
 
-    if (!indexName) {
-      throw new Error("Index name will be prompted during execution");
-    }
-
+    // For restore action, index name can be prompted later
     return { appId, apiKey, indexName };
   }
 
@@ -68,15 +64,26 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
     return indexName.trim();
   }
 
+  private async promptForBackupPrefix(): Promise<string> {
+    const backupPrefix = await promptUser("📂 Enter the backup prefix (e.g., 'my-index' for files like 'my-index-records-*.json'): ");
+    if (!backupPrefix.trim()) {
+      console.error("❌ Backup prefix cannot be empty");
+      process.exit(1);
+    }
+    return backupPrefix.trim();
+  }
+
   protected override async processRecords(): Promise<RestoreIndexResult> {
     // Prompt for index name if not provided
-    if (!this.options.indexName) {
+    if (!this.options.indexName || !this.config.indexName) {
       const indexName = await this.promptForIndexName();
       this.config.indexName = indexName;
-      // Update backup prefix if it wasn't explicitly set
-      if (!this.options.backupPrefix) {
-        this.backupPrefix = indexName;
-      }
+    }
+
+    // Prompt for backup prefix if not provided
+    if (!this.options.backupPrefix) {
+      const backupPrefix = await this.promptForBackupPrefix();
+      this.backupPrefix = backupPrefix;
     }
 
     this.logger.section("Restore Algolia Index");
@@ -84,17 +91,6 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
       "Restore Index", 
       `Restoring records, settings, rules and synonyms from ${this.inputDir}`
     );
-
-    // Confirmation prompt unless skipped
-    if (!this.options.skipConfirmation && !this.options.dryRun) {
-      const confirmed = await promptUser(
-        `⚠️  This will overwrite the existing index "${this.config.indexName}". Are you sure you want to continue?`
-      );
-      if (!confirmed) {
-        this.logger.info("🚫 Restore operation cancelled by user");
-        throw new Error("Restore operation cancelled by user");
-      }
-    }
 
     const restoreData = await this.loadBackupFiles();
     const result = await this.restoreIndex(restoreData);
@@ -199,6 +195,15 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
     }
   }
 
+  private cleanRules(rules: any[]): any[] {
+    return rules.map(rule => {
+      const cleanRule = { ...rule };
+      delete cleanRule._highlightResult;
+      delete cleanRule._metadata;
+      return cleanRule;
+    });
+  }
+
   private async restoreIndex(restoreData: RestoreData): Promise<RestoreIndexResult> {
     const result: RestoreIndexResult = {
       recordsRestored: 0,
@@ -208,32 +213,6 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
       inputDirectory: this.inputDir,
       filesProcessed: []
     };
-
-    if (this.options.dryRun) {
-      this.logger.info("🔍 DRY RUN: No changes will be made to the index");
-      
-      if (restoreData.records?.length) {
-        result.recordsRestored = restoreData.records.length;
-        this.logger.info(`📦 Would restore ${restoreData.records.length} records`);
-      }
-      
-      if (restoreData.settings) {
-        result.settingsRestored = true;
-        this.logger.info("⚙️ Would restore index settings");
-      }
-      
-      if (restoreData.rules?.length) {
-        result.rulesRestored = restoreData.rules.length;
-        this.logger.info(`📋 Would restore ${restoreData.rules.length} rules`);
-      }
-      
-      if (restoreData.synonyms?.length) {
-        result.synonymsRestored = restoreData.synonyms.length;
-        this.logger.info(`🔗 Would restore ${restoreData.synonyms.length} synonyms`);
-      }
-      
-      return result;
-    }
 
     try {
       // Restore records
@@ -263,13 +242,14 @@ export class RestoreIndexAction extends BaseAlgoliaAction<RestoreIndexOptions, R
       // Restore rules
       if (restoreData.rules?.length) {
         this.logger.info("📋 Restoring rules...");
+        const cleanedRules = this.cleanRules(restoreData.rules);
         await this.client.saveRules({
           indexName: this.config.indexName,
-          rules: restoreData.rules,
+          rules: cleanedRules,
           clearExistingRules: true
         });
-        result.rulesRestored = restoreData.rules.length;
-        this.logger.info(`✅ Restored ${restoreData.rules.length} rules`);
+        result.rulesRestored = cleanedRules.length;
+        this.logger.info(`✅ Restored ${cleanedRules.length} rules`);
       }
 
       // Restore synonyms

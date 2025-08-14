@@ -39,7 +39,7 @@ export class BackupIndexAction extends BaseAlgoliaAction<BackupIndexOptions, Bac
   protected override validateAndGetConfig(): AlgoliaConfig {
     const appId = process.env.ALGOLIA_APP_ID;
     const apiKey = process.env.ALGOLIA_API_KEY;
-    let indexName = this.options.indexName;
+    let indexName = this.options.indexName || ""; // Allow empty index name for backup
 
     if (!appId || !apiKey) {
       console.error("❌ Missing required environment variables:");
@@ -47,10 +47,7 @@ export class BackupIndexAction extends BaseAlgoliaAction<BackupIndexOptions, Bac
       process.exit(1);
     }
 
-    if (!indexName) {
-      throw new Error("Index name will be prompted during execution");
-    }
-
+    // For backup action, index name can be prompted later
     return { appId, apiKey, indexName };
   }
 
@@ -65,7 +62,7 @@ export class BackupIndexAction extends BaseAlgoliaAction<BackupIndexOptions, Bac
 
   protected override async processRecords(): Promise<BackupIndexResult> {
     // Prompt for index name if not provided
-    if (!this.options.indexName) {
+    if (!this.options.indexName || !this.config.indexName) {
       const indexName = await this.promptForIndexName();
       this.config.indexName = indexName;
     }

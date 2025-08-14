@@ -352,6 +352,7 @@ program
 program
   .command("backup-index")
   .description("Backup an Algolia index including records, settings, rules and synonyms")
+  .option("--index <name>", "Index name (overrides .env, will be prompted if not provided)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .option("--output-dir <path>", "Output directory for backup files (default: current directory)")
   .option(
@@ -361,6 +362,7 @@ program
   .action(async (options) => {
     try {
       const actionOptions = {
+        indexName: options.index || undefined,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
         outputDir: options.outputDir || undefined,
         logFile: options.logFile || false,
@@ -377,26 +379,22 @@ program
 
 program
   .command("restore-index")
-  .description("Restore an Algolia index from backup files including records, settings, rules and synonyms (DESTRUCTIVE)")
-  .option("--dry-run", "Run without making changes (default behavior)")
-  .option("--execute", "Actually execute the restore")
+  .description("Restore an Algolia index from backup files including records, settings, rules and synonyms")
+  .option("--index <name>", "Index name (will be prompted if not provided)")
   .option("--batch-size <size>", "Batch size for processing (default: 1000)")
   .option("--input-dir <path>", "Input directory for backup files (default: current directory)")
-  .option("--backup-prefix <prefix>", "Prefix for backup files (default: prompted index name)")
-  .option("--skip-confirmation", "Skip confirmation prompt for destructive operation")
+  .option("--backup-prefix <prefix>", "Prefix for backup files (will be prompted if not provided)")
   .option(
     "--log-file",
     "Save results to log file in logs folder (automatically named)"
   )
   .action(async (options) => {
     try {
-      const dryRun = !options.execute;
       const actionOptions = {
-        dryRun,
+        indexName: options.index || undefined,
         batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
         inputDir: options.inputDir || undefined,
         backupPrefix: options.backupPrefix || undefined,
-        skipConfirmation: options.skipConfirmation || false,
         logFile: options.logFile || false,
       };
       await restoreIndex(actionOptions);
