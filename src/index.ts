@@ -12,6 +12,7 @@ import { fixPublishedDate } from "./actions/fix-published-date";
 import { normalizeDateField } from "./actions/normalize-date-field";
 import { findDuplicateSlug } from "./actions/find-duplicate-slug";
 import { sanitizeDateValues } from "./actions/sanitize-date-values";
+import { deleteRecordsByPattern } from "./actions/delete-records-by-pattern";
 
 dotenv.config();
 
@@ -266,6 +267,42 @@ program
         logFile: options.logFile || false,
       };
       await findDuplicateSlug(actionOptions);
+    } catch (error) {
+      console.error(
+        "❌ Command failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("delete-records-by-pattern")
+  .description(
+    "Delete records where a specific field matches a regular expression pattern (DESTRUCTIVE)"
+  )
+  .requiredOption("--key <name>", "Field name to match against (must be string field)")
+  .requiredOption("--pattern <regex>", "Regular expression pattern to match")
+  .option("--dry-run", "Run without making changes (default behavior)")
+  .option("--execute", "Actually execute the deletions")
+  .option("--index <name>", "Index name (overrides .env)")
+  .option("--batch-size <size>", "Batch size for processing (default: 1000)")
+  .option(
+    "--log-file",
+    "Save results to log file in logs folder (automatically named)"
+  )
+  .action(async (options) => {
+    try {
+      const dryRun = !options.execute;
+      const actionOptions = {
+        indexName: options.index || undefined,
+        key: options.key,
+        pattern: options.pattern,
+        dryRun,
+        batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+        logFile: options.logFile || false,
+      };
+      await deleteRecordsByPattern(actionOptions);
     } catch (error) {
       console.error(
         "❌ Command failed:",
